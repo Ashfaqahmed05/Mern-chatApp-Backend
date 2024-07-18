@@ -4,8 +4,8 @@ import express from "express";
 import { errorMiddleware } from "./middlewares/error.js";
 import { connectDB } from "./utils/features.js";
 
+import chatRoute from "./routes/chat.js";
 import userRoute from "./routes/user.js";
-import chatRoute from "./routes/chat.js"
 
 dotenv.config({
     path: "./.env"
@@ -14,7 +14,6 @@ const port = process.env.PORT || 3000
 const mongoURI = process.env.MONGO_URI
 connectDB(mongoURI)
 
- 
 const app = express();
 
 // using middlewares here 
