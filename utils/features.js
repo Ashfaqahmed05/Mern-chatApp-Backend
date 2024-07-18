@@ -21,13 +21,10 @@ const sendToken = ({ res, user, code, message }) => {
 
     const token = jwt.sign({_id: user._id}, process.env.JWT_SECRET);
 
-
-
     return res.status(code).cookie("user-token", token,  cookieOption).json({
         success: true,
         message,
     })
-
 
 }
 
@@ -35,5 +32,9 @@ const emitEvent = (req, event, users, data) => {
     console.log("Emmiting event" , event);
 }
 
+const deleteFilesFromClaudinary = async (public_ids) => {
 
-export { connectDB, sendToken, cookieOption, emitEvent }
+}
+
+
+export { connectDB, sendToken, cookieOption, emitEvent, deleteFilesFromClaudinary }
