@@ -197,14 +197,17 @@ const sendAttachements = TryCatch(async (req, res, next) => {
 
     const { chatId } = req.body;
 
+    const files = req.files || [];
+    
+    if (files.length < 1) return next(new ErrorHandler("Please provide attachements", 400))
+
+    if (files.length > 5) return next(new ErrorHandler("Files can't be more than 5", 400))
+
+    
     const [chat, me] = await Promise.all([Chat.findById(chatId),
     User.findById(req.user, "name")]);
-
+    
     if (!chat) return next(new ErrorHandler("Chat not found", 404))
-
-    const files = req.files || [];
-
-    if (files.length < 1) return next(new ErrorHandler("Please provide attachements", 400))
 
     const attachements = ["lol", "lol", "lol", "lol", "lol", "lol", "lol",]
 

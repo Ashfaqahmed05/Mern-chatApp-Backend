@@ -10,11 +10,15 @@ import { getOtherMember } from "../lib/helper.js"
 
 // Create a new user and save it to database and save token in cookie
 
-const newUser = async (req, res) => {
+const newUser = TryCatch(async (req, res, next) => {
     const { name, username, password, bio } = req.body;
-    console.log(req.body);
 
-    try {
+    const file = req.file;
+
+    console.log(file);
+
+    if(!file) return next(new ErrorHandler("Please Upload Avatar"))
+
         const avatar = {
             public_id: "jdhskjvdnk",
             url: "dnsvkdn"
@@ -33,11 +37,8 @@ const newUser = async (req, res) => {
         }
 
         sendToken({ res, user, code: 201, message: "User created successfully" });
-    } catch (error) {
-        console.error("Error creating user:", error);
-        return res.status(500).json({ success: false, message: "User creation failed" });
-    }
-};
+        
+})
 
 const login = TryCatch(async (req, res, next) => {
 

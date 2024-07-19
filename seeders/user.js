@@ -66,23 +66,22 @@ const createSingleChats = async (numOfChat) => {
 
 const createGroupChat = async (numofChat) => {
     try {
-        const user = await User.find().select("_id")
+        const users = await User.find().select("_id"); // Fixed typo and renamed to users
 
         const chatPromise = [];
 
         for (let i = 0; i < numofChat; i++) {
-            const numMembers = simpleFaker.number.int({ min: 3, max: user.lenght })
+            const numMembers = simpleFaker.number.int({ min: 3, max: users.length }); // Fixed typo
 
             const members = [];
 
-            for (let i = 0; i < numMembers; i++) {
+            while (members.length < numMembers) {
+                const randomIndex = Math.floor(Math.random() * users.length); // Fixed typo
 
-                const randomIndex = Math.floor(Math.random() * user.lenght)
+                const randomUser = users[randomIndex];
 
-                const randomUser = user[randomIndex]
-
-                if (members.includes(randomUser)) {
-                    members.push(randomUser)
+                if (!members.includes(randomUser)) { // Corrected condition to avoid duplicates
+                    members.push(randomUser);
                 }
             }
 
@@ -91,19 +90,19 @@ const createGroupChat = async (numofChat) => {
                 name: faker.lorem.words(1),
                 members,
                 creator: members[0],
-            })
-            chatPromise.push(chat)
+            });
+            chatPromise.push(chat);
         }
-        await Promise.all(chatPromise)
+        await Promise.all(chatPromise);
 
-        console.log('chat created successfully');
-        process.exit()
+        console.log('Chats created successfully');
+        process.exit();
 
     } catch (error) {
         console.log(error);
-        process.exit()
+        process.exit(1);
     }
-}
+};
 
 const createMessages = async (numofChat) => {
     try {
@@ -139,7 +138,7 @@ const createMessages = async (numofChat) => {
 const createMessagesInChat = async (chatId, numofMessages) => {
     try {
         const users = await User.find().select("_id");
-        
+
         const MessagePromises = [];
 
         for (let i = 0; i < numofMessages; i++) {
