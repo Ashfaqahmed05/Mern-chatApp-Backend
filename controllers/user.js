@@ -1,6 +1,6 @@
 import { compare } from "bcrypt";
 import { User } from "../models/user.js"
-import { cookieOption, emitEvent, sendToken } from "../utils/features.js"
+import { cookieOption, emitEvent, sendToken, uploadFilesToCloudinary } from "../utils/features.js"
 import { ErrorHandler } from "../utils/utility.js";
 import { TryCatch } from "../middlewares/error.js";
 import { Chat } from "../models/chat.js";
@@ -19,9 +19,11 @@ const newUser = TryCatch(async (req, res, next) => {
 
     if(!file) return next(new ErrorHandler("Please Upload Avatar"))
 
+        const result = await uploadFilesToCloudinary([file])
+
         const avatar = {
-            public_id: "jdhskjvdnk",
-            url: "dnsvkdn"
+            public_id: result[0].public_id,
+            url: result[0].url,
         };
 
         const user = await User.create({
@@ -43,7 +45,6 @@ const newUser = TryCatch(async (req, res, next) => {
 const login = TryCatch(async (req, res, next) => {
 
     const { username, password } = req.body;
-
     const user = await User.findOne({ username }).select("+password")
     if (!user) return next(new ErrorHandler("Invalid Username or Password", 404))
 
@@ -128,6 +129,8 @@ const sendFriendRequest = TryCatch(async (req, res, next) => {
 const acceptFriendRequest = TryCatch(async (req, res, next) => {
 
     const { requestId, accept } = req.body;
+
+    console.log(requestId, accept);
 
     const request = await Request.findById(requestId)
         .populate("sender", "name")

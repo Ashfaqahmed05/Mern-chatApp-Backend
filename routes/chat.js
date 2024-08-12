@@ -6,6 +6,7 @@ import { addMembersValidator, chatIdValidator,  newGroupValidator, removeMemberV
 
 const app = express.Router()
 
+app.get("/message/:id", chatIdValidator(), validateHandler, getMessages)
 
 app.use(isAuthenticated)
 
@@ -23,7 +24,6 @@ app.delete("/leave/:id", chatIdValidator(), validateHandler, leaveGroup)
 
 app.post("/message", attachmentsMulter, sendAttachementsValidator(), validateHandler, sendAttachements)
 
-app.get("/message/:id", chatIdValidator(), validateHandler, getMessages)
 
 app.route("/:id")
 .get(chatIdValidator(), validateHandler, getChatDetails)
