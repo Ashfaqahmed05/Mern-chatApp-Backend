@@ -8,8 +8,6 @@ const isAuthenticated =  (req, res, next) => {
 
   const token =  req.cookies[USER_TOKEN]
 
-  console.log("token----> ",token);
-  
   if (!token) return next(new ErrorHandler("Please login to access this route", 401))
 
   const decodedData = jwt.verify(token, process.env.JWT_SECRET)

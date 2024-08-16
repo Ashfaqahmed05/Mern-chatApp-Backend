@@ -14,7 +14,7 @@ import { Message } from "./models/message.js"
 import chatRoute from "./routes/chat.js";
 import userRoute from "./routes/user.js";
 import adminRoute from "./routes/admin.js";
-import { NEW_MESSAGE, NEW_MESSAGE_ALERT } from "./constants/events.js";
+import { NEW_MESSAGE, NEW_MESSAGE_ALERT, START_TYPING, STOP_TYPING } from "./constants/events.js";
 import { getSockets } from "./lib/helper.js";
 import { socketAuthenticator } from "./middlewares/auth.js";
 
@@ -46,6 +46,7 @@ const io = new Server(server, {
     }
 })
 
+app.set("io", io)
 
 // using middlewares here 
 app.use(express.json())
@@ -103,7 +104,16 @@ io.on("connection", (socket) => {
             console.log(error);
         }
     })
-
+    
+    socket.on(START_TYPING, ({members, chatId})=>{
+        const membersSockets = getSockets(members)
+        socket.to(membersSockets).emit(START_TYPING, {chatId})
+    })
+    
+    socket.on(STOP_TYPING, ({members, chatId})=>{
+        const membersSockets = getSockets(members)
+        socket.to(membersSockets).emit(STOP_TYPING, {chatId})
+    })
 
     socket.on("disconnect", () => {
         userSocketIDs.delete(user._id.toString())
