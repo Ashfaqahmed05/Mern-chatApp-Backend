@@ -117,9 +117,9 @@ const allMessages = TryCatch(async (req, res) => {
         .populate("chat", "groupChat")
 
     const transformedMessages = messages.map(
-        ({ content, attachements, _id, sender, createdAt, chat }) => ({
+        ({ content, attachments, _id, sender, createdAt, chat }) => ({
             _id,
-            attachements,
+            attachments,
             content,
             createdAt,
             chat: chat._id,
@@ -150,13 +150,6 @@ const getDashboardStats = TryCatch(async (req, res) => {
 
         ])
 
-    const stats = {
-        groupsCount,
-        usersCount,
-        messagesCount,
-        totalChatsCount,
-    }
-
     const today = new Date();
 
     const last7Days = new Date()
@@ -179,6 +172,13 @@ const getDashboardStats = TryCatch(async (req, res) => {
         messages[6 - index]++;
     });
 
+    const stats = {
+        groupsCount,
+        usersCount,
+        messagesCount,
+        totalChatsCount,
+        messagesChart: messages
+    }
 
     return res.status(200).json({
         success: true,

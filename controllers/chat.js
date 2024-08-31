@@ -66,23 +66,26 @@ const getMyChats = TryCatch(async (req, res, next) => {
 
 const getMyGroups = TryCatch(async (req, res, next) => {
 
-    const chats = await Chat.find({ members: req.user }).populate(
+    const chats = await Chat.find({ members: req.user, groupChat: true, creator: req.user }).populate(
         "members",
         "name avatar"
-    )
+    );
 
-    const groups = chats.map(({ _id, members, groupChat, name }) => ({
-        _id,
-        groupChat,
-        name,
-        avatar: members.slice(0, 3).map(({ avatar }) => avatar.url)
-    }))
+    const groups = chats
+        .filter(chat => chat.groupChat)
+        .map(({ _id, members, groupChat, name }) => ({
+            _id,
+            groupChat,
+            name,
+            avatar: members.slice(0, 3).map(({ avatar }) => avatar.url)
+        }));
 
     return res.status(200).json({
         success: true,
         groups,
-    })
-})
+    });
+});
+
 
 const addMembers = TryCatch(async (req, res, next) => {
 
@@ -145,13 +148,18 @@ const removeMember = TryCatch(async (req, res, next) => {
 
     if (chat.members.length <= 3) return next(new ErrorHandler("Group must have 3 members", 400))
 
+    const allChatMembers = chat.members.map((i) => i.toString());
+
     chat.members = chat.members.filter((member) => member.toString() !== userId.toString())
 
     await chat.save()
 
-    emitEvent(req, ALERT, chat.members, `${userThatWillBeRemoved.name} has been removed from the group`)
+    emitEvent(req, ALERT, chat.members, {
+        message: `${userThatWillBeRemoved.name} has been removed from the group`,
+        chatId,
+    })
 
-    emitEvent(req, REFETCH_CHATS, chat.members)
+    emitEvent(req, REFETCH_CHATS, allChatMembers)
 
     return res.status(200).json({
         success: true,
@@ -162,8 +170,8 @@ const removeMember = TryCatch(async (req, res, next) => {
 
 
 const leaveGroup = TryCatch(async (req, res, next) => {
+    console.log("console--",req.params);
     const chatId = req.params.id;
-
     const chat = await Chat.findById(chatId);
 
     if (!chat) return next(new ErrorHandler("Chat not found", 404));
@@ -180,15 +188,19 @@ const leaveGroup = TryCatch(async (req, res, next) => {
 
     chat.members = remainingMembers;
 
-    const user = await User.findById(req.user, "name"); // Ensure User model is used here
+    const [user] = await Promise.all([
+        User.findById(req.user, "name"),
+        chat.save(),
+    ]);
 
-    await chat.save();
-
-    emitEvent(req, ALERT, chat.members, `User ${user.name} has left the group`);
+    emitEvent(req, ALERT, chat.members, {
+        message: `User ${user.name} has left the group`,
+        chatId,
+    });
 
     return res.status(200).json({
         success: true,
-        message: "Member removed successfully"
+        message: "Leaved Group Successfully"
     });
 });
 
@@ -356,6 +368,13 @@ const getMessages = TryCatch(async (req, res, next) => {
 
     const resultPerPage = 20;
     const skip = (page - 1) * resultPerPage;
+
+    const chat = await Chat.findById(chatId)
+
+    if (!chat) return next(new ErrorHandler("Chat not found", 404))
+
+    // if (!chat.members.includes(req.user.toString()))
+    // return next(new ErrorHandler("You are not allowed to access this chat", 403))
 
     const [messages, totalMessagesCount] = await Promise.all([Message.find({ chat: chatId })
         .sort({ createdAt: -1 })

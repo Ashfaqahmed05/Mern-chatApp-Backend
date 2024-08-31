@@ -10,6 +10,7 @@ app.get("/message/:id", chatIdValidator(), validateHandler, getMessages)
 
 app.use(isAuthenticated)
 
+
 app.post("/new", newGroupValidator(), validateHandler, newGroupChat)
 
 app.get("/my", getMyChats)

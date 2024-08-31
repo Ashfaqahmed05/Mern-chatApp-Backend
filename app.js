@@ -1,22 +1,22 @@
+import { v2 as cloudinary } from "cloudinary";
 import cookieParser from "cookie-parser";
+import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
-import { errorMiddleware } from "./middlewares/error.js";
-import { connectDB } from "./utils/features.js";
+import { createServer } from "http";
 import { Server } from "socket.io";
-import { createServer } from "http"
 import { v4 as uuid } from "uuid";
-import cors from "cors";
-import { v2 as cloudinary } from "cloudinary"
 import { corsOptions } from "./constants/config.js";
-import { Message } from "./models/message.js"
+import { errorMiddleware } from "./middlewares/error.js";
+import { Message } from "./models/message.js";
+import { connectDB } from "./utils/features.js";
 
-import chatRoute from "./routes/chat.js";
-import userRoute from "./routes/user.js";
-import adminRoute from "./routes/admin.js";
-import { NEW_MESSAGE, NEW_MESSAGE_ALERT, START_TYPING, STOP_TYPING } from "./constants/events.js";
+import { CHAT_JOINED, CHAT_LEAVED, NEW_MESSAGE, NEW_MESSAGE_ALERT, ONLINE_USERS, START_TYPING, STOP_TYPING } from "./constants/events.js";
 import { getSockets } from "./lib/helper.js";
 import { socketAuthenticator } from "./middlewares/auth.js";
+import adminRoute from "./routes/admin.js";
+import chatRoute from "./routes/chat.js";
+import userRoute from "./routes/user.js";
 
 
 dotenv.config({
@@ -27,6 +27,7 @@ const mongoURI = process.env.MONGO_URI
 const envMode = process.env.NODE_ENV.trim() || "PRODUCTION"
 const adminSecretKey = process.env.ADMIN_SECRET_KEY || "dsjgsfnag4f54bdgdfk";
 const userSocketIDs = new Map();
+const onlineUsers = new Set()
 
 connectDB(mongoURI)
 cloudinary.config({
@@ -62,7 +63,7 @@ app.get("/", (req, res) => {
 })
 
 io.use((socket, next) => {
-    cookieParser()(socket.request, socket.request.res, 
+    cookieParser()(socket.request, socket.request.res,
         async (err) => await socketAuthenticator(err, socket, next)
     )
 })
@@ -72,7 +73,7 @@ io.on("connection", (socket) => {
     const user = socket.user
 
     userSocketIDs.set(user._id.toString(), socket.id)
-    
+
     socket.on(NEW_MESSAGE, async ({ chatId, members, message }) => {
         const messageForRealTime = {
             content: message,
@@ -104,20 +105,34 @@ io.on("connection", (socket) => {
             console.log(error);
         }
     })
-    
-    socket.on(START_TYPING, ({members, chatId})=>{
+
+    socket.on(START_TYPING, ({ members, chatId }) => {
         const membersSockets = getSockets(members)
-        socket.to(membersSockets).emit(START_TYPING, {chatId})
+        socket.to(membersSockets).emit(START_TYPING, { chatId })
     })
-    
-    socket.on(STOP_TYPING, ({members, chatId})=>{
+
+    socket.on(STOP_TYPING, ({ members, chatId }) => {
         const membersSockets = getSockets(members)
-        socket.to(membersSockets).emit(STOP_TYPING, {chatId})
+        socket.to(membersSockets).emit(STOP_TYPING, { chatId })
+    })
+    socket.on(CHAT_JOINED, ({ userId, members }) => {
+        onlineUsers.add(userId.toString())
+
+        const membersSocket = getSockets(members)
+        io.to(membersSocket).emit(ONLINE_USERS, Array.from(onlineUsers))
+    })
+
+    socket.on(CHAT_LEAVED, ({ userId, members }) => {
+        onlineUsers.delete(userId.toString())
+
+        const membersSocket = getSockets(members)
+        io.to(membersSocket).emit(ONLINE_USERS, Array.from(onlineUsers))
     })
 
     socket.on("disconnect", () => {
         userSocketIDs.delete(user._id.toString())
-        console.log("User Disconneted");
+        onlineUsers.delete(user._id.toString())
+        socket.broadcast.emit(ONLINE_USERS, Array.from(onlineUsers))
     })
 
 })
@@ -129,7 +144,5 @@ server.listen(port, () => {
 })
 
 export {
-    envMode,
-    adminSecretKey,
-    userSocketIDs
-}
+    adminSecretKey, envMode, userSocketIDs
+};

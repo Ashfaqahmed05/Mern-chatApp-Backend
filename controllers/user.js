@@ -217,7 +217,7 @@ const getMyFriends = TryCatch(async (req, res) => {
         const availableFriends = friends.filter((friend) => !chat.members.includes(friend._id))
         return res.status(200).json({
             success: true,
-            Data: availableFriends,
+            friends: availableFriends,
         })
     } else {
         return res.status(200).json({
